@@ -16,7 +16,8 @@ TODOS:
 
     $budget summary --month
     Summary for current month: Month_X
-        Total Income So Far: $9999 of $999999 (Y%)
+        Total Income So Far: $9999 (Y% of $9999 Expected)
+        Total Expenses So Far: $9999 (L% of $9999 Expected)
             Budget 1: $9999 of $99999 used (Q%) ==> $9999 (U%) below Monthly Average
             Budget 2: $999 of $99999 used (Z%) ==> $9999 (A%) above Monthly Average
             ...
