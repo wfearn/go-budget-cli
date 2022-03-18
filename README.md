@@ -6,6 +6,7 @@ TODOS:
 3. Write up design doc
 4. Write unit tests
 5. Implement CLI
+6. Aaron learns SQL
 
 
 # Interface
