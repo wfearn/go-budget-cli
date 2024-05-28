@@ -229,8 +229,9 @@ class LabellingAssistant:
 
         while 'TO_LABEL' in transactions['category'].unique():
 
-            num_samples = min(20, len(transactions))
-            sampled_transactions = transactions.sample(n=num_samples)
+            transactions_to_label = transactions.loc[transactions['category'] == 'TO_LABEL']
+            num_samples = min(20, len(transactions_to_label))
+            sampled_transactions = transactions_to_label.sample(n=num_samples)
 
             for transaction in sampled_transactions.itertuples():
 
@@ -254,13 +255,20 @@ class LabellingAssistant:
 
 
                     featurized_transaction = self.featurize_prepared_transaction(prepared_transaction)
-                    predicted_amount = self.amount_model.predict(featurized_transaction)
+                    predicted_amount = round(self.amount_model.predict(featurized_transaction)[0], 2)
                     confirmed_amount = self.confirm_predicted_amount(predicted_amount)
                     prepared_transaction.amounts.append(confirmed_amount)
-                    print('\n\n')
+                    print()
 
+                amount_string = ','.join([str(a) for a in prepared_transaction.amounts])
+                category_string = ','.join(prepared_transaction.categories)
 
+                transactions.loc[transactions['hash'] == transaction.hash, 'amount'] = amount_string
+                transactions.loc[transactions['hash'] == transaction.hash, 'category'] = category_string
+                transactions.loc[transactions['hash'] == transaction.hash, 'human_confirmed'] = int(1)
+                print('\n\n')
 
+        
         return transactions
 
     def confirm_predicted_category(
@@ -270,13 +278,19 @@ class LabellingAssistant:
         labels: List[str]
     ) -> str:
 
-        string, categories, amounts, total_amount = transaction.transaction_string, transaction.categories, transaction.amounts, transaction.total_amount
+        string, categories, amounts, total_amount = (
+            transaction.transaction_string,
+            transaction.categories,
+            transaction.amounts,
+            transaction.total_amount
+        )
+
         confirmed_category = predicted_category
 
         print('Transaction:', string)
         print('Total Amount:', total_amount)
-        print('Categories So Far:', categories)
-        print('Amounts So Far:', amounts)
+        print('Categories So Far:', ','.join(categories))
+        print('Amounts So Far:', ','.join([str(a) for a in amounts]))
         confirmation = input(f'Does {predicted_category} match this transaction? ')
 
         if confirmation != 'y':
@@ -292,10 +306,9 @@ class LabellingAssistant:
 
     def confirm_predicted_amount(self, predicted_amount: float) -> float:
 
-        confirmed_amount = predicted_amount[0]
+        confirmed_amount = predicted_amount
 
         confirmation = input(f'Does {confirmed_amount} seem about right for this category? ')
-        print()
 
         if confirmation != 'y':
             confirmed_amount = float(input('\tWhat amount matches this category? '))
@@ -303,50 +316,50 @@ class LabellingAssistant:
         return confirmed_amount
 
 
-def get_human_labels(transactions: pd.DataFrame, possible_labels: dict[int, str]) -> List[List[str]]:
-
-    labels = list()
-    amounts = list()
-
-    for transaction in transactions.itertuples():
-        transaction_labels = list()
-        transaction_amounts = list()
-
-        print('Transaction:')
-        print('\tDate:', transaction.date)
-        print('\tDescription:', transaction.description)
-        print('\tAmount:', transaction.amount)
-        print('\tInstitution:', transaction.institution)
-        print('\tPossible Labels:', end='')
-        for key, label in possible_labels.items():
-            print(f' {key}:{label}', end='')
-        print()
-        label = input('What are the labels for this transaction? ')
-        if label.isnumeric():
-            transaction_labels.append(possible_labels[int(label)])
-        else:
-            transaction_labels.append(label)
-
-        total_amount = float(transaction.amount)
-        transaction_amounts.append(total_amount)
-
-        while True:
-            label = input('\tDoes any other label apply? ')
-            if not label:
-                break
-            sub_amount = float(input(f'\t\tHow much of the amount does this account for (Total Amount: {total_amount})? '))
-            transaction_amounts.append(sub_amount)
-            transaction_amounts[0] -= sub_amount
-
-            if label.isnumeric():
-                transaction_labels.append(possible_labels[int(label)])
-            else:
-                transaction_labels.append(label)
-
-        labels.append(','.join(transaction_labels))
-        amounts.append(','.join([str(a) for a in transaction_amounts]))
-
-        assert sum(transaction_amounts) == total_amount
-        
-    return amounts, labels
+# def get_human_labels(transactions: pd.DataFrame, possible_labels: dict[int, str]) -> List[List[str]]:
+# 
+#     labels = list()
+#     amounts = list()
+# 
+#     for transaction in transactions.itertuples():
+#         transaction_labels = list()
+#         transaction_amounts = list()
+# 
+#         print('Transaction:')
+#         print('\tDate:', transaction.date)
+#         print('\tDescription:', transaction.description)
+#         print('\tAmount:', transaction.amount)
+#         print('\tInstitution:', transaction.institution)
+#         print('\tPossible Labels:', end='')
+#         for key, label in possible_labels.items():
+#             print(f' {key}:{label}', end='')
+#         print()
+#         label = input('What are the labels for this transaction? ')
+#         if label.isnumeric():
+#             transaction_labels.append(possible_labels[int(label)])
+#         else:
+#             transaction_labels.append(label)
+# 
+#         total_amount = float(transaction.amount)
+#         transaction_amounts.append(total_amount)
+# 
+#         while True:
+#             label = input('\tDoes any other label apply? ')
+#             if not label:
+#                 break
+#             sub_amount = float(input(f'\t\tHow much of the amount does this account for (Total Amount: {total_amount})? '))
+#             transaction_amounts.append(sub_amount)
+#             transaction_amounts[0] -= sub_amount
+# 
+#             if label.isnumeric():
+#                 transaction_labels.append(possible_labels[int(label)])
+#             else:
+#                 transaction_labels.append(label)
+# 
+#         labels.append(','.join(transaction_labels))
+#         amounts.append(','.join([str(a) for a in transaction_amounts]))
+# 
+#         assert sum(transaction_amounts) == total_amount
+#         
+#     return amounts, labels
 
