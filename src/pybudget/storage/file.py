@@ -43,7 +43,8 @@ class FileManager(StorageManager):
         self.transactions_updated = False
 
     def update_budget(self, budget: Dict[str, int]) -> None:
-        raise NotImplementedError
+        self.budget = budget
+        self.budget_updated = True
 
     def get_budget(self) -> Dict[str, int]:
         if self.budget is None:
