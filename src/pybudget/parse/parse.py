@@ -8,6 +8,7 @@ NEW_COLUMN_NAMES = ['Date', 'Description', 'Category', 'Type', 'Amount']
 Transaction = namedtuple('Transaction', 'date description amount institution')
 
 def parse_transaction(transaction: str, transaction_type: str) -> namedtuple:
+    ## TODO: change these to dictionaries and pull the columns I want
     if transaction_type == 'amex':
         date, description, amount = transaction
     elif transaction_type == 'chase':

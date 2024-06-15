@@ -241,6 +241,7 @@ class LabellingAssistant:
         confirmation = input(f'Does {predicted_category} match this transaction? ')
         print()
 
+        # TODO: Add option for custom label
         if confirmation != 'y':
             num_to_label = { i: label for i, label in enumerate(labels) }
             num_to_label[len(num_to_label)] = 'NONE'
