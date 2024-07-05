@@ -68,6 +68,7 @@ class LabellingAssistant:
 
         num_categories = len(prepared_transaction.categories)
         amounts_and_categories = zip(prepared_transaction.amounts, prepared_transaction.categories)
+        total_amount = prepared_transaction.total_amount
 
         for p in range(num_categories + 1):
             for permutation in permutations(amounts_and_categories, p):
@@ -79,7 +80,9 @@ class LabellingAssistant:
                 for i, category in enumerate(prepared_transaction.categories):
                     if category not in permuted_categories:
                         category_labels.append(category)
-                        amount_labels.append(prepared_transaction.amounts[i])
+                        category_amount = prepared_transaction.amounts[i]
+                        percent_of_total = float(category_amount / total_amount)
+                        amount_labels.append(percent_of_total)
 
                 if p == num_categories:
                     category_labels.append('NONE')
@@ -113,9 +116,9 @@ class LabellingAssistant:
         train_and_validation, test = train_test_split(training_transactions, test_size=0.2)
         train, validation = train_test_split(train_and_validation, test_size=0.2)
 
-        test_data, test_category_labels, test_amount_labels = zip(*test)
-        train_data, train_category_labels, train_amount_labels = zip(*train)
-        validation_data, validation_category_labels, validation_amount_labels = zip(*validation)
+        test_data, test_category_labels, _ = zip(*test)
+        train_data, train_category_labels, _ = zip(*train)
+        validation_data, validation_category_labels, _ = zip(*validation)
 
         self.category_to_label = { category: i for i, category in enumerate(set(train_category_labels)) }
 
@@ -235,6 +238,7 @@ class LabellingAssistant:
 
             for transaction in sampled_transactions.itertuples():
 
+                total_amount = transaction.total_amount
                 prepared_transaction = self.prepare_transaction_for_featurization(transaction)
                 prepared_transaction.amounts.clear()
 
@@ -255,7 +259,7 @@ class LabellingAssistant:
 
 
                     featurized_transaction = self.featurize_prepared_transaction(prepared_transaction)
-                    predicted_amount = round(self.amount_model.predict(featurized_transaction)[0], 2)
+                    predicted_amount = round(self.amount_model.predict(featurized_transaction)[0] * total_amount, 2)
                     confirmed_amount = self.confirm_predicted_amount(predicted_amount)
                     prepared_transaction.amounts.append(confirmed_amount)
                     print()
