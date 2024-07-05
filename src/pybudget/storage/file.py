@@ -32,7 +32,8 @@ class FileManager(StorageManager):
     filetype_regexes = list([
         'amex*',
         'chase*',
-        'navyfed*'
+        'navyfed*',
+        'becu*'
     ])
 
     def __init__(self) -> None:
@@ -101,7 +102,6 @@ class FileManager(StorageManager):
 
     def load_new_transactions(self) -> None:
         filetype_to_transactions = defaultdict(list)
-
         for filetype_regex in FileManager.filetype_regexes:
             for filename in glob.glob(filetype_regex):
                 filetype = FileManager._convert_filename_to_filetype(filename)
@@ -149,5 +149,7 @@ class FileManager(StorageManager):
             return 'chase'
         elif 'navyfed' in filename:
             return 'navyfed'
+        elif 'becu' in filename:
+            return 'becu'
         else:
             raise NotImplementedError(f'{filename} not implemented')

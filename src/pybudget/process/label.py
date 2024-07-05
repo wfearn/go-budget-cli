@@ -177,7 +177,7 @@ class LabellingAssistant:
 
     def prepare_transaction_for_featurization(self, transaction: Tuple) -> Tuple[str, List[str], List[float], float]:
 
-        amounts = transaction.amount.split(',')
+        amounts = str(transaction.amount).split(',') 
         categories = transaction.category.split(',')
 
         date, description, institution = transaction.date, transaction.description, transaction.institution

@@ -29,3 +29,7 @@ def get_spending(transactions: pd.DataFrame):
             spending_amount *= -1
         print(f'\t{category}: {spending_amount}')
     print(f'Total: {total_amount}')
+
+
+def get_percentage_of_spending(transactions: pd.DataFrame) -> None: 
+    print('you did it')
