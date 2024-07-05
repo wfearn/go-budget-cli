@@ -22,6 +22,11 @@ def parse_transaction(transaction: str, transaction_type: str) -> namedtuple:
 
         if credit_or_debit == 'Credit':
             amount = f'-{amount}'
+    
+    elif transaction_type == 'becu':
+        date, _, description, debit, credit = transaction
+        amount = f'-{credit}' if credit else debit[1:]
+
 
     else:
         raise NotImplementedError(f'{transaction_type} not implemented')
