@@ -8,6 +8,7 @@ NEW_COLUMN_NAMES = ['Date', 'Description', 'Category', 'Type', 'Amount']
 Transaction = namedtuple('Transaction', 'date description amount institution')
 
 def parse_transaction(transaction: str, transaction_type: str) -> namedtuple:
+    ## TODO: change these to dictionaries and pull the columns I want
     if transaction_type == 'amex':
         date, description, amount = transaction
     elif transaction_type == 'chase':
@@ -22,6 +23,11 @@ def parse_transaction(transaction: str, transaction_type: str) -> namedtuple:
 
         if credit_or_debit == 'Credit':
             amount = f'-{amount}'
+    
+    elif transaction_type == 'becu':
+        date, _, description, debit, credit = transaction
+        amount = f'-{credit}' if credit else debit[1:]
+
 
     else:
         raise NotImplementedError(f'{transaction_type} not implemented')

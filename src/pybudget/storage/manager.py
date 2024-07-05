@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Dict
 
 import pandas as pd
 
@@ -19,6 +20,14 @@ class StorageManager(ABC):
 
     @abstractmethod
     def load_new_transactions(self) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_budget(self) -> Dict[str, int]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def update_budget(self, new_budget: Dict[str, int]) -> None:
         raise NotImplementedError
 
     @abstractmethod

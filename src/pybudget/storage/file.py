@@ -2,9 +2,12 @@ from collections import defaultdict
 import csv
 from datetime import datetime
 import glob
+import io
 import os
+from typing import Dict
 
 import pandas as pd
+import yaml
 
 from .manager import StorageManager
 
@@ -14,6 +17,7 @@ from ..process import convert_transactions_to_usable_data
 
 class FileManager(StorageManager):
 
+    main_budget_filename = 'budgets\\main.yaml'
     master_filename = 'data\\all_transactions.csv'
     master_columns = [
         'date',
@@ -28,12 +32,29 @@ class FileManager(StorageManager):
     filetype_regexes = list([
         'amex*',
         'chase*',
-        'navyfed*'
+        'navyfed*',
+        'becu*'
     ])
 
     def __init__(self) -> None:
+        self.budget = None
+        self.budget_updated = False
+
         self.transactions = None
-        self.updated = False
+        self.transactions_updated = False
+
+    def update_budget(self, budget: Dict[str, int]) -> None:
+        self.budget = budget
+        self.budget_updated = True
+
+    def get_budget(self) -> Dict[str, int]:
+        if self.budget is None:
+            with open(self.main_budget_filename, 'r') as f:
+                budget = yaml.safe_load(f)
+
+            self.budget = budget
+
+        return self.budget
 
     # default dates can be any window that we won't need transactions outside of
     def get_transactions(self, start_date: str = '01/01/0001', end_date: str = '01/01/2100') -> pd.DataFrame:
@@ -66,17 +87,21 @@ class FileManager(StorageManager):
             transactions.loc[transactions['id'] == id, 'human_confirmed'] = human_confirmed
 
         self.transactions = transactions
-        self.updated = True
+        self.transactions_updated = True
 
     def save(self) -> None:
-        if not self.updated: return
+        if self.budget_updated:
+            with io.open(self.main_budget_filename, 'w') as f:
+                yaml.dump(self.budget, f, default_flow_style=False)
 
-        self.transactions.to_csv(FileManager.master_filename, header=False, index=False)
-        self.updated = False
+            self.budget_updated = False
+
+        if self.transactions_updated:
+            self.transactions.to_csv(FileManager.master_filename, header=False, index=False)
+            self.transactions_updated = False
 
     def load_new_transactions(self) -> None:
         filetype_to_transactions = defaultdict(list)
-
         for filetype_regex in FileManager.filetype_regexes:
             for filename in glob.glob(filetype_regex):
                 filetype = FileManager._convert_filename_to_filetype(filename)
@@ -114,7 +139,7 @@ class FileManager(StorageManager):
             transactions
         ))
 
-        self.updated = True
+        self.transactions_updated = True
 
 
     def _convert_filename_to_filetype(filename: str) -> str:
@@ -124,5 +149,7 @@ class FileManager(StorageManager):
             return 'chase'
         elif 'navyfed' in filename:
             return 'navyfed'
+        elif 'becu' in filename:
+            return 'becu'
         else:
             raise NotImplementedError(f'{filename} not implemented')
