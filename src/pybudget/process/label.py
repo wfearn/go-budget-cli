@@ -199,10 +199,11 @@ class LabellingAssistant:
         category_string = ' '.join(prepared_transaction.categories)
         X_vector = self.vectorizer.transform([f'{prepared_transaction.transaction_string} {category_string}'])
 
-        # NOTE: We only expect there to be a maximum number of 5 categories per transaction -- could change
+        # NOTE: We currently only expect there to be a maximum number of 5 categories per transaction
         amount_vector = np.zeros(5)
         for i, amount in enumerate(prepared_transaction.amounts):
-            amount_vector[i] = amount
+            percent_of_total = amount / prepared_transaction.total_amount
+            amount_vector[i] = percent_of_total
 
         amounts = np.expand_dims(amount_vector, 0)
         total_amount = np.expand_dims(np.array([prepared_transaction.total_amount]), 0)
@@ -238,9 +239,11 @@ class LabellingAssistant:
 
             for transaction in sampled_transactions.itertuples():
 
-                total_amount = transaction.total_amount
                 prepared_transaction = self.prepare_transaction_for_featurization(transaction)
                 prepared_transaction.amounts.clear()
+
+                total_amount = prepared_transaction.total_amount
+                amount_left_over = total_amount
 
                 while True:
 
@@ -251,19 +254,24 @@ class LabellingAssistant:
                     predicted_category = label_to_category[predicted_index]
                     confirmed_category = self.confirm_predicted_category(prepared_transaction, predicted_category, labels)
 
-
-                    if confirmed_category == 'NONE':
-                        break
-
                     prepared_transaction.categories.append(confirmed_category)
 
-
                     featurized_transaction = self.featurize_prepared_transaction(prepared_transaction)
-                    predicted_amount = round(self.amount_model.predict(featurized_transaction)[0] * total_amount, 2)
-                    confirmed_amount = self.confirm_predicted_amount(predicted_amount)
+                    percent_prediction = self.amount_model.predict(featurized_transaction)[0]
+                    predicted_amount = round(percent_prediction* total_amount, 2)
+                    confirmed_amount = self.confirm_predicted_amount(predicted_amount, amount_left_over)
                     prepared_transaction.amounts.append(confirmed_amount)
                     print()
 
+                    amount_left_over = round(amount_left_over - confirmed_amount, 2)
+                    if amount_left_over <= 0:
+                        # sanity check
+                        assert amount_left_over > -1
+                        eps = 1e-6
+                        assert abs(total_amount - sum(prepared_transaction.amounts)) <= eps
+                        break
+
+                print()
                 amount_string = ','.join([str(a) for a in prepared_transaction.amounts])
                 category_string = ','.join(prepared_transaction.categories)
 
@@ -308,14 +316,15 @@ class LabellingAssistant:
 
         return confirmed_category
 
-    def confirm_predicted_amount(self, predicted_amount: float) -> float:
+    def confirm_predicted_amount(self, predicted_amount: float, amount_left_over: float) -> float:
 
         confirmed_amount = predicted_amount
 
-        confirmation = input(f'Does {confirmed_amount} seem about right for this category? ')
+        confirmation = input(f'Does {confirmed_amount} seem about right for this category (left over: {amount_left_over})? ')
 
         if confirmation != 'y':
-            confirmed_amount = float(input('\tWhat amount matches this category? '))
+            confirmed_amount = input(f'\tWhat amount matches this category (default: {amount_left_over})? ')
+            confirmed_amount = amount_left_over if not confirmed_amount else float(confirmed_amount)
 
         return confirmed_amount
 
