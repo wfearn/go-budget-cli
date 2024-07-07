@@ -28,8 +28,14 @@ def parse_transaction(transaction: str, transaction_type: str) -> namedtuple:
         date, _, description, debit, credit = transaction
         amount = f'-{credit}' if credit else debit[1:]
 
+    elif transaction_type == 'sofi':
+        date, description, _, amount, _, _ = transaction
+        amount = amount[1:] if amount[0] == '-' else f'-{amount}'
+        year, month, day = date.split('-')
+        date = f'{month}/{day}/{year}'
+
 
     else:
         raise NotImplementedError(f'{transaction_type} not implemented')
 
-    return Transaction(datetime.strptime(date, '%m/%d/%Y'), description, float(amount), transaction_type)
+    return Transaction(datetime.strptime(date, '%m/%d/%Y'), description, amount, transaction_type)

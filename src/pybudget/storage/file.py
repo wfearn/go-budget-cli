@@ -33,7 +33,8 @@ class FileManager(StorageManager):
         'amex*',
         'chase*',
         'navyfed*',
-        'becu*'
+        'becu*',
+        'sofi*'
     ])
 
     def __init__(self) -> None:
@@ -151,5 +152,7 @@ class FileManager(StorageManager):
             return 'navyfed'
         elif 'becu' in filename:
             return 'becu'
+        elif 'sofi' in filename:
+            return 'sofi'
         else:
             raise NotImplementedError(f'{filename} not implemented')
