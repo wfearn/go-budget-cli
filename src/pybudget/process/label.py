@@ -264,9 +264,9 @@ class LabellingAssistant:
                     print()
 
                     amount_left_over = round(amount_left_over - confirmed_amount, 2)
-                    if amount_left_over <= 0:
+                    one_cent = 0.01
+                    if 0 <= abs(amount_left_over) <= one_cent:
                         # sanity check
-                        assert amount_left_over > -1
                         eps = 1e-6
                         assert abs(total_amount - sum(prepared_transaction.amounts)) <= eps
                         break
