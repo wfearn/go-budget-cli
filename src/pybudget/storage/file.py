@@ -4,7 +4,7 @@ from datetime import datetime
 import glob
 import io
 import os
-from typing import Dict
+from typing import Dict, List
 
 import pandas as pd
 import yaml
@@ -13,31 +13,16 @@ from .manager import StorageManager
 
 from ..process import convert_transactions_to_usable_data
 
-# TODO: Store this in a better place
 
 class FileManager(StorageManager):
 
-    main_budget_filename = 'budgets\\main.yaml'
-    master_filename = 'data\\all_transactions.csv'
-    master_columns = [
-        'date',
-        'description',
-        'amount',
-        'institution',
-        'category',
-        'id',
-        'hash',
-        'human_confirmed'
-    ]
-    filetype_regexes = list([
-        'amex*',
-        'chase*',
-        'navyfed*',
-        'becu*',
-        'sofi*'
-    ])
-
     def __init__(self) -> None:
+        if not os.path.isdir(self.data_directory):
+            os.makedirs(self.data_directory)
+
+        if not os.path.isdir(self.budget_directory):
+            os.makedirs(self.budget_directory)
+
         self.budget = None
         self.budget_updated = False
 
@@ -156,3 +141,53 @@ class FileManager(StorageManager):
             return 'sofi'
         else:
             raise NotImplementedError(f'{filename} not implemented')
+
+class CSVFileManager(FileManager):
+    budget_directory = f'{os.getenv("SYSTEMDRIVE")}/.pybudget/budget'
+    data_directory = f'{os.getenv("SYSTEMDRIVE")}/.pybudget/data'
+    master_filename = 'all_transactions.csv'
+    master_columns = [
+        'date',
+        'description',
+        'amount',
+        'institution',
+        'category',
+        'id',
+        'hash',
+        'human_confirmed'
+    ]
+    filetype_regexes = list([
+        'amex*',
+        'chase*',
+        'navyfed*',
+        'becu*',
+        'sofi*'
+    ])
+
+    def _save_in_default_dir(self, filename):
+        return len(filename.split('/')) == 1
+
+    def read(self, filename: str) -> List[List[str]]:
+        filename = f'{self.data_directory}/{filename}' if self._save_in_default_dir(
+            filename
+        ) else filename
+
+        data = list()
+
+        with open(filename, newline='') as csvfile:
+            reader = csv.reader(csvfile)
+            for row in reader:
+                data.append(row)
+
+        return data
+
+    def write(self, data: List[List[str]], filename: str) -> None:
+        filename = f'{self.data_directory}/{filename}' if self._save_in_default_dir(
+            filename
+        ) else filename
+
+        with open(filename, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            for row in data:
+                writer.writerow(row)
+
