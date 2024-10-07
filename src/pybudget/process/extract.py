@@ -8,7 +8,7 @@ ExtractedTransaction = namedtuple('ExtractedTransaction', 'date description amou
 class InvalidSchemaError(Exception):
     pass
 
-class ChainOfResponsibilityExtractor(ABC):
+class ChainOfResponsibilityTransactionExtractor(ABC):
     @abstractmethod
     def extract_transactions(self, transactions: List[List[str]]) -> List[ExtractedTransaction]:
         raise NotImplementedError
@@ -17,7 +17,6 @@ class TransactionExtractorTemplate(ABC):
     credit_indicator_string = 'Credit'
     debit_indicator_string = 'Debit'
 
-    @classmethod
     def extract(self, transaction: List[str]) -> ExtractedTransaction:
         date, amount, credit_debit_indicator, description = self._extraction_method(transaction)
 
@@ -51,7 +50,7 @@ class TransactionExtractorTemplate(ABC):
     
 class SchemaOneExtractor(TransactionExtractorTemplate):
     def _extraction_method(self, transaction: List[str]) -> ExtractedTransaction:
-        date, amount, credit_or_debit, _, _, _, _, _, _, description , _, _, _ = transaction
+        date, amount, credit_or_debit, _, _, _, _, _, _, description, _, _, _ = transaction
         return date, amount, credit_or_debit, description
     
 class SchemaTwoExtractor(TransactionExtractorTemplate):
@@ -75,7 +74,6 @@ class SchemaThreeExtractor(TransactionExtractorTemplate):
         return date, amount, credit_or_debit, description
 
 class SchemaFourExtractor(TransactionExtractorTemplate):
-    @classmethod
     def _extraction_method(self, transaction: List[str]) -> ExtractedTransaction:
         date, description, _, amount, _, _ = transaction
         credit_or_debit = (
@@ -85,7 +83,7 @@ class SchemaFourExtractor(TransactionExtractorTemplate):
         )
         return date, amount, credit_or_debit, description
     
-class TransactionExtractorTemplate(ChainOfResponsibilityExtractor):
+class TransactionExtractorPipeline(ChainOfResponsibilityTransactionExtractor):
     def __init__(self):
         self.extractors = list()
         self.extractors.append(SchemaOneExtractor.extract)
