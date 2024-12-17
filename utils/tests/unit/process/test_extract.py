@@ -86,7 +86,7 @@ class TestTransactionExtractorPipeline:
             ''
         ]
 
-        transaction = pipeline.extract_transactions([test_data])[0][0]
+        transaction = pipeline.extract_transactions([test_data])[0]
 
         assert transaction.date == test_date
         assert transaction.amount == test_amount
@@ -115,7 +115,7 @@ class TestTransactionExtractorPipeline:
             ''
         ]
 
-        extractor_id = pipeline.extract_transactions([test_data])[0][1]
+        extractor_id = pipeline.extract_transactions([test_data])[0].extractor_id
         expected_id = 1
 
         assert extractor_id == expected_id
@@ -143,7 +143,7 @@ class TestTransactionExtractorPipeline:
             ''
         ]
 
-        transaction = pipeline.extract_transactions([test_data])[0][0]
+        transaction = pipeline.extract_transactions([test_data])[0]
 
         assert transaction.date == test_date
         assert transaction.amount == test_amount
@@ -172,7 +172,7 @@ class TestTransactionExtractorPipeline:
             ''
         ]
 
-        extractor_id = pipeline.extract_transactions([test_data])[0][1]
+        extractor_id = pipeline.extract_transactions([test_data])[0].extractor_id
         expected_id = 2
 
         assert extractor_id == expected_id
@@ -201,7 +201,7 @@ class TestTransactionExtractorPipeline:
         ]
 
         try:
-            pipeline.extract_transactions([test_data])[0][0]
+            pipeline.extract_transactions([test_data])[0]
         except InvalidSchemaError:
             assert False
     
@@ -221,7 +221,7 @@ class TestTransactionExtractorPipeline:
             ''
         ]
 
-        transaction = pipeline.extract_transactions([test_data])[0][0]
+        transaction = pipeline.extract_transactions([test_data])[0]
         expected_amount = '666.0'
 
         assert transaction.date == test_date
@@ -263,7 +263,7 @@ class TestTransactionExtractorPipeline:
             ''
         ]
 
-        extractor_id = pipeline.extract_transactions([test_data])[0][1]
+        extractor_id = pipeline.extract_transactions([test_data])[0].extractor_id
         expected_id = 3
 
         assert extractor_id == expected_id
@@ -280,7 +280,7 @@ class TestTransactionExtractorPipeline:
             test_amount
         ]
 
-        transaction = pipeline.extract_transactions([test_data])[0][0]
+        transaction = pipeline.extract_transactions([test_data])[0]
 
         assert transaction.date == test_date
         assert transaction.amount == test_amount
@@ -313,7 +313,7 @@ class TestTransactionExtractorPipeline:
             test_amount
         ]
 
-        extractor_id = pipeline.extract_transactions([test_data])[0][1]
+        extractor_id = pipeline.extract_transactions([test_data])[0].extractor_id
         expected_id = 4
 
         assert extractor_id == expected_id
@@ -333,7 +333,7 @@ class TestTransactionExtractorPipeline:
             ''
         ]
 
-        transaction = pipeline.extract_transactions([test_data])[0][0]
+        transaction = pipeline.extract_transactions([test_data])[0]
         expected_amount = '-666.0'
 
         assert transaction.date == test_date
@@ -373,7 +373,7 @@ class TestTransactionExtractorPipeline:
             ''
         ]
 
-        extractor_id = pipeline.extract_transactions([test_data])[0][1]
+        extractor_id = pipeline.extract_transactions([test_data])[0].extractor_id
         expected_id = 5
 
         assert extractor_id == expected_id

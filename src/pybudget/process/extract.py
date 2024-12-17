@@ -3,7 +3,7 @@ from collections import namedtuple
 from typing import List
 
 
-ExtractedTransaction = namedtuple('ExtractedTransaction', 'date description amount credit_or_debit')
+ExtractedTransaction = namedtuple('ExtractedTransaction', 'date description amount credit_or_debit extractor_id')
 
 class InvalidSchemaError(Exception):
     pass
@@ -30,7 +30,13 @@ class TransactionExtractorTemplate(ABC):
         credit_or_debit = cls.normalize_credit_debit_indicator(credit_debit_indicator)
         amount = cls.normalize_amount(amount, credit_or_debit)
 
-        return ExtractedTransaction(date, description, amount, credit_or_debit)
+        return ExtractedTransaction(
+            date,
+            description,
+            amount,
+            credit_or_debit,
+            cls.get_extractor_id()
+        )
 
     @abstractmethod
     def _extraction_method(self, transaction: List[str]) -> ExtractedTransaction:
@@ -154,7 +160,7 @@ class TransactionExtractorPipeline(ChainOfResponsibilityTransactionExtractor):
                     continue
 
                 extraction_successful = True
-                extracted_transactions.append((extracted_transaction, extractor.get_extractor_id()))
+                extracted_transactions.append(extracted_transaction)
                 
 
             if not extraction_successful:
