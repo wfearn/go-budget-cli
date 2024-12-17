@@ -152,17 +152,11 @@ class CSVFileManager(FileManager):
         'amount',
         'institution',
         'category',
+        'transaction_indicator',
         'id',
         'hash',
         'human_confirmed'
     ]
-    filetype_regexes = list([
-        'amex*',
-        'chase*',
-        'navyfed*',
-        'becu*',
-        'sofi*'
-    ])
 
     def _save_in_default_dir(self, filename):
         return len(filename.split('/')) == 1

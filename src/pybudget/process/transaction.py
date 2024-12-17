@@ -12,7 +12,7 @@ TransactionWithHash = namedtuple('TransactionWithHash', 'date description amount
 def generate_additional_transaction_data(transaction: tuple) -> namedtuple:
 
     date, description, amount, transaction_indicator, extractor_id = transaction
-    hash_string = f'{date.strftime("%m/%d/%Y")}{description}{amount}{extractor_id}{transaction_indicator}'
+    hash_string = f'{date}{description}{amount}{extractor_id}{transaction_indicator}'
     hash_digest = hashlib.sha256(str.encode(hash_string)).hexdigest()
     guid = str(uuid.uuid4())
     category = 'TO_LABEL'
