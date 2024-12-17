@@ -82,7 +82,7 @@ class SchemaOneExtractor(TransactionExtractorTemplate):
 class SchemaTwoExtractor(TransactionExtractorTemplate):
     @classmethod
     def _extraction_method(cls, transaction: List[str]) -> ExtractedTransaction:
-        _, date, amount, credit_or_debit, _, _, _, _, _, _, description, _, _ = transaction
+        _, date, amount, credit_or_debit, _, _, _, _, _, _, description, _, _, _ = transaction
         return date, amount, credit_or_debit, description
 
     @classmethod
@@ -137,6 +137,10 @@ class SchemaFiveExtractor(TransactionExtractorTemplate):
     @classmethod
     def get_extractor_id(cls):
         return 5
+
+    @classmethod
+    def normalize_date(cls, date):
+        return date.replace('-', '/')
 
    
 class TransactionExtractorPipeline(ChainOfResponsibilityTransactionExtractor):

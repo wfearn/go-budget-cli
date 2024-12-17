@@ -140,6 +140,7 @@ class TestTransactionExtractorPipeline:
             '',
             test_description,
             '',
+            '',
             ''
         ]
 
@@ -169,6 +170,7 @@ class TestTransactionExtractorPipeline:
             '',
             test_description,
             '',
+            '',
             ''
         ]
 
@@ -196,6 +198,7 @@ class TestTransactionExtractorPipeline:
             '',
             '',
             test_description,
+            '',
             '',
             ''
         ]
@@ -321,7 +324,7 @@ class TestTransactionExtractorPipeline:
     def test_correctly_extracts_schema_five_data(self):
         pipeline = TransactionExtractorPipeline()
 
-        test_date = '08/09/2024'
+        test_date = '08-09-2024'
         test_amount = '666.0'
         test_description = 'Description'
         test_data = [
@@ -335,14 +338,15 @@ class TestTransactionExtractorPipeline:
 
         transaction = pipeline.extract_transactions([test_data])[0]
         expected_amount = '-666.0'
+        expected_date = '08/09/2024'
 
-        assert transaction.date == test_date
+        assert transaction.date == expected_date
         assert transaction.amount == expected_amount
         assert transaction.description == test_description
 
     def test_does_not_throw_invalid_schema_error_for_schema_five_data(self):
         pipeline = TransactionExtractorPipeline()
-        test_date = '08/09/2024'
+        test_date = '08-09-2024'
         test_amount = '666.0'
         test_description = 'Description'
         test_data = [
@@ -361,7 +365,7 @@ class TestTransactionExtractorPipeline:
 
     def test_schema_five_data_uses_schema_five_extractor(self):
         pipeline = TransactionExtractorPipeline()
-        test_date = '08/09/2024'
+        test_date = '08-09-2024'
         test_amount = '666.0'
         test_description = 'Description'
         test_data = [
@@ -498,10 +502,11 @@ class TestSchemaOneExtractor:
             '',
             test_description,
             '',
+            '',
             ''
         ]
 
-        with pytest.raises(InvalidTransactionIndicatorError):
+        with pytest.raises(ValueError):
             extractor.extract(test_data)
     
     def test_extraction_method_throws_value_error_if_input_for_schema_three(self):
@@ -540,7 +545,7 @@ class TestSchemaOneExtractor:
     def test_extraction_method_throws_value_error_if_input_for_schema_five(self):
         extractor = SchemaOneExtractor()
 
-        test_date = '08/09/2024'
+        test_date = '08-09-2024'
         test_amount = '666.0'
         test_description = 'Description'
         test_data = [
@@ -576,6 +581,7 @@ class TestSchemaTwoExtractor:
             '',
             test_description,
             '',
+            '',
             ''
         ]
 
@@ -599,6 +605,7 @@ class TestSchemaTwoExtractor:
             '',
             '',
             test_description,
+            '',
             '',
             ''
         ]
@@ -632,7 +639,7 @@ class TestSchemaTwoExtractor:
             ''
         ]
 
-        with pytest.raises(InvalidTransactionIndicatorError):
+        with pytest.raises(ValueError):
             extractor.extract(test_data)
     
     def test_extraction_method_throws_value_error_if_input_for_schema_three(self):
@@ -671,7 +678,7 @@ class TestSchemaTwoExtractor:
     def test_extraction_method_throws_value_error_if_input_for_schema_five(self):
         extractor = SchemaTwoExtractor()
 
-        test_date = '08/09/2024'
+        test_date = '08-09-2024'
         test_amount = '666.0'
         test_description = 'Description'
         test_data = [
@@ -832,6 +839,7 @@ class TestSchemaThreeExtractor:
             '',
             test_description,
             '',
+            '',
             ''
         ]
 
@@ -856,7 +864,7 @@ class TestSchemaThreeExtractor:
     def test_extraction_method_throws_value_error_if_input_for_schema_five(self):
         extractor = SchemaThreeExtractor()
 
-        test_date = '08/09/2024'
+        test_date = '08-09-2024'
         test_amount = '666.0'
         test_description = 'Description'
         test_data = [
@@ -997,6 +1005,7 @@ class TestSchemaFourExtractor:
             '',
             test_description,
             '',
+            '',
             ''
         ]
 
@@ -1024,7 +1033,7 @@ class TestSchemaFourExtractor:
     def test_extraction_method_throws_value_error_if_input_for_schema_five(self):
         extractor = SchemaFourExtractor()
 
-        test_date = '08/09/2024'
+        test_date = '08-09-2024'
         test_amount = '666.0'
         test_description = 'Description'
         test_data = [
@@ -1042,7 +1051,7 @@ class TestSchemaFourExtractor:
 class TestSchemaFiveExtractor:
     def test_extraction_method_succeeds_with_no_errors(self):
         extractor = SchemaFiveExtractor()
-        test_date = '08/09/2024'
+        test_date = '08-09-2024'
         test_amount = '666.0'
         test_description = 'Description'
         test_data = [
@@ -1058,7 +1067,7 @@ class TestSchemaFiveExtractor:
 
     def test_extraction_method_extract_correct_values(self):
         extractor = SchemaFiveExtractor()
-        test_date = '08/09/2024'
+        test_date = '08-09-2024'
         test_amount = '666.0'
         test_description = 'Description'
         test_data = [
@@ -1072,14 +1081,15 @@ class TestSchemaFiveExtractor:
 
         transaction = extractor.extract(test_data)
         expected_amount = '-666.0'
+        expected_date = '08/09/2024'
 
-        assert transaction.date == test_date
+        assert transaction.date == expected_date
         assert transaction.amount == expected_amount
         assert transaction.description == test_description
 
     def test_extraction_method_correctly_converts_negative_amount(self):
         extractor = SchemaFiveExtractor()
-        test_date = '08/09/2024'
+        test_date = '08-09-2024'
         test_amount = '-666.0'
         test_description = 'Description'
         test_data = [
@@ -1096,9 +1106,28 @@ class TestSchemaFiveExtractor:
         expected_amount = '666.0'
         assert transaction.amount == expected_amount
 
+    def test_extraction_method_correctly_converts_date(self):
+        extractor = SchemaFiveExtractor()
+        test_date = '08-09-2024'
+        test_amount = '-666.0'
+        test_description = 'Description'
+        test_data = [
+            test_date,
+            test_description,
+            '',
+            test_amount,
+            '',
+            ''
+        ]
+
+        transaction = extractor.extract(test_data)
+
+        expected_date = '08/09/2024'
+        assert transaction.date == expected_date
+
     def test_extraction_method_correctly_infers_debit_indicator(self):
         extractor = SchemaFiveExtractor()
-        test_date = '08/09/2024'
+        test_date = '08-09-2024'
         test_amount = '-666.0'
         test_description = 'Description'
         test_data = [
@@ -1117,7 +1146,7 @@ class TestSchemaFiveExtractor:
 
     def test_extraction_method_correctly_infers_credit_indicator(self):
         extractor = SchemaFiveExtractor()
-        test_date = '08/09/2024'
+        test_date = '08-09-2024'
         test_amount = '666.0'
         test_description = 'Description'
         test_data = [
@@ -1179,6 +1208,7 @@ class TestSchemaFiveExtractor:
             '',
             '',
             test_description,
+            '',
             '',
             ''
         ]
