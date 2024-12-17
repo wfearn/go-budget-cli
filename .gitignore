@@ -1,4 +1,6 @@
+budgets/*
+data/*
+build/*
 *.pyc
-*.yaml
 *.csv
 *.txt

@@ -8,21 +8,27 @@ ExtractedTransaction = namedtuple('ExtractedTransaction', 'date description amou
 class InvalidSchemaError(Exception):
     pass
 
+class InvalidTransactionIndicatorError(Exception):
+    pass
+
+
 class ChainOfResponsibilityTransactionExtractor(ABC):
     @abstractmethod
     def extract_transactions(self, transactions: List[List[str]]) -> List[ExtractedTransaction]:
         raise NotImplementedError
+
     
 class TransactionExtractorTemplate(ABC):
     credit_indicator_string = 'Credit'
     debit_indicator_string = 'Debit'
 
-    def extract(self, transaction: List[str]) -> ExtractedTransaction:
-        date, amount, credit_debit_indicator, description = self._extraction_method(transaction)
+    @classmethod
+    def extract(cls, transaction: List[str]) -> ExtractedTransaction:
+        date, amount, credit_debit_indicator, description = cls._extraction_method(transaction)
 
-        date = self.normalize_date(date)
-        credit_or_debit = self.normalize_credit_debit_indicator(credit_debit_indicator)
-        amount = self.normalize_amount(amount, credit_or_debit)
+        date = cls.normalize_date(date)
+        credit_or_debit = cls.normalize_credit_debit_indicator(credit_debit_indicator)
+        amount = cls.normalize_amount(amount, credit_or_debit)
 
         return ExtractedTransaction(date, description, amount, credit_or_debit)
 
@@ -30,41 +36,45 @@ class TransactionExtractorTemplate(ABC):
     def _extraction_method(self, transaction: List[str]) -> ExtractedTransaction:
         raise NotImplementedError
 
+    @classmethod
     def normalize_date(self, date_string: str) -> str:
         return date_string
     
+    @classmethod
     def normalize_amount(self, amount_string: str, credit_or_debit: str) -> str:
         if credit_or_debit == TransactionExtractorTemplate.credit_indicator_string:
             amount_string = str(-1 * abs(float(amount_string)))
         elif credit_or_debit == TransactionExtractorTemplate.debit_indicator_string:
             amount_string = str(abs(float(amount_string)))
         else:
-            raise NotImplementedError(
+            raise InvalidTransactionIndicatorError(
                 f'{credit_or_debit} invalid way to indicate transaction status'
             )
 
         return amount_string
 
-    def normalize_credit_debit_indicator(self, indicator_string: str) -> str:
+    @classmethod
+    def normalize_credit_debit_indicator(cls, indicator_string: str) -> str:
         return indicator_string
+
     
 class SchemaOneExtractor(TransactionExtractorTemplate):
-    def _extraction_method(self, transaction: List[str]) -> ExtractedTransaction:
+    @classmethod
+    def _extraction_method(cls, transaction: List[str]) -> ExtractedTransaction:
         date, amount, credit_or_debit, _, _, _, _, _, _, description, _, _, _ = transaction
         return date, amount, credit_or_debit, description
+
     
 class SchemaTwoExtractor(TransactionExtractorTemplate):
-    def _extraction_method(self, transaction: List[str]) -> ExtractedTransaction:
-        date, description, amount = transaction
-        credit_or_debit = (
-            TransactionExtractorTemplate.credit_indicator_string
-            if float(amount) < 0 else
-            TransactionExtractorTemplate.debit_indicator_string
-        )
+    @classmethod
+    def _extraction_method(cls, transaction: List[str]) -> ExtractedTransaction:
+        _, date, amount, credit_or_debit, _, _, _, _, _, _, description, _, _ = transaction
         return date, amount, credit_or_debit, description
 
+
 class SchemaThreeExtractor(TransactionExtractorTemplate):
-    def _extraction_method(self, transaction: List[str]) -> ExtractedTransaction:
+    @classmethod
+    def _extraction_method(cls, transaction: List[str]) -> ExtractedTransaction:
         date, _, description, _, _, amount, _ = transaction
         credit_or_debit = (
             TransactionExtractorTemplate.debit_indicator_string
@@ -73,16 +83,19 @@ class SchemaThreeExtractor(TransactionExtractorTemplate):
         )
         return date, amount, credit_or_debit, description
 
+
 class SchemaFourExtractor(TransactionExtractorTemplate):
-    def _extraction_method(self, transaction: List[str]) -> ExtractedTransaction:
-        date, description, _, amount, _, _ = transaction
+    @classmethod
+    def _extraction_method(cls, transaction: List[str]) -> ExtractedTransaction:
+        date, description, amount = transaction
         credit_or_debit = (
             TransactionExtractorTemplate.credit_indicator_string
             if float(amount) < 0 else
             TransactionExtractorTemplate.debit_indicator_string
         )
         return date, amount, credit_or_debit, description
-    
+
+   
 class TransactionExtractorPipeline(ChainOfResponsibilityTransactionExtractor):
     def __init__(self):
         self.extractors = list()
@@ -94,12 +107,12 @@ class TransactionExtractorPipeline(ChainOfResponsibilityTransactionExtractor):
     def extract_transactions(self, transactions: List[List[str]]) -> List[ExtractedTransaction]:
         extracted_transactions = list()
 
-        for extraction_method in self.extractors:
+        for transaction in transactions:
             extraction_successful = False
-            for transaction in transactions:
+            for extraction_method in self.extractors:
                 try:
                     extracted_transaction = extraction_method(transaction)
-                except:
+                except (InvalidTransactionIndicatorError, ValueError):
                     continue
 
                 extraction_successful = True
@@ -112,4 +125,3 @@ class TransactionExtractorPipeline(ChainOfResponsibilityTransactionExtractor):
                 )
         
         return extracted_transactions
-
