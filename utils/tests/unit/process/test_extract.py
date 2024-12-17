@@ -6,6 +6,7 @@ from pybudget.process.extract import (
     InvalidSchemaError,
     InvalidTransactionIndicatorError,
     SchemaFourExtractor,
+    SchemaFiveExtractor,
     SchemaOneExtractor,
     SchemaThreeExtractor,
     SchemaTwoExtractor,
@@ -224,6 +225,25 @@ class TestTransactionExtractorPipeline:
         except InvalidSchemaError:
             assert False
 
+    def test_does_not_throw_invalid_schema_error_for_schema_five_data(self):
+        pipeline = TransactionExtractorPipeline()
+        test_date = '08/09/2024'
+        test_amount = '666.0'
+        test_description = 'Description'
+        test_data = [
+            test_date,
+            test_description,
+            '',
+            test_amount,
+            '',
+            ''
+        ]
+
+        try:
+            pipeline.extract_transactions([test_data])[0]
+        except InvalidSchemaError:
+            assert False
+
 
 class TestTransactionExtractorTemplate:
     def test_unable_to_instantiate(self):
@@ -383,6 +403,24 @@ class TestSchemaOneExtractor:
         with pytest.raises(ValueError):
             extractor.extract(test_data)
 
+    def test_extraction_method_throws_value_error_if_input_for_schema_five(self):
+        extractor = SchemaOneExtractor()
+
+        test_date = '08/09/2024'
+        test_amount = '666.0'
+        test_description = 'Description'
+        test_data = [
+            test_date,
+            test_description,
+            '',
+            test_amount,
+            '',
+            ''
+        ]
+
+        with pytest.raises(ValueError):
+            extractor.extract(test_data)
+
 
 class TestSchemaTwoExtractor:
     def test_extraction_method_succeeds_with_no_errors(self):
@@ -491,6 +529,24 @@ class TestSchemaTwoExtractor:
             test_date,
             test_description,
             test_amount
+        ]
+
+        with pytest.raises(ValueError):
+            extractor.extract(test_data)
+
+    def test_extraction_method_throws_value_error_if_input_for_schema_five(self):
+        extractor = SchemaTwoExtractor()
+
+        test_date = '08/09/2024'
+        test_amount = '666.0'
+        test_description = 'Description'
+        test_data = [
+            test_date,
+            test_description,
+            '',
+            test_amount,
+            '',
+            ''
         ]
 
         with pytest.raises(ValueError):
@@ -663,6 +719,24 @@ class TestSchemaThreeExtractor:
         with pytest.raises(ValueError):
             extractor.extract(test_data)
 
+    def test_extraction_method_throws_value_error_if_input_for_schema_five(self):
+        extractor = SchemaThreeExtractor()
+
+        test_date = '08/09/2024'
+        test_amount = '666.0'
+        test_description = 'Description'
+        test_data = [
+            test_date,
+            test_description,
+            '',
+            test_amount,
+            '',
+            ''
+        ]
+
+        with pytest.raises(ValueError):
+            extractor.extract(test_data)
+
 
 class TestSchemaFourExtractor:
     def test_extraction_method_succeeds_with_no_errors(self):
@@ -808,6 +882,204 @@ class TestSchemaFourExtractor:
             '',
             test_amount,
             ''
+        ]
+
+        with pytest.raises(ValueError):
+            extractor.extract(test_data)
+
+    def test_extraction_method_throws_value_error_if_input_for_schema_five(self):
+        extractor = SchemaFourExtractor()
+
+        test_date = '08/09/2024'
+        test_amount = '666.0'
+        test_description = 'Description'
+        test_data = [
+            test_date,
+            test_description,
+            '',
+            test_amount,
+            '',
+            ''
+        ]
+
+        with pytest.raises(ValueError):
+            extractor.extract(test_data)
+
+class TestSchemaFiveExtractor:
+    def test_extraction_method_succeeds_with_no_errors(self):
+        extractor = SchemaFiveExtractor()
+        test_date = '08/09/2024'
+        test_amount = '666.0'
+        test_description = 'Description'
+        test_data = [
+            test_date,
+            test_description,
+            '',
+            test_amount,
+            '',
+            ''
+        ]
+
+        extractor.extract(test_data)
+
+    def test_extraction_method_extract_correct_values(self):
+        extractor = SchemaFiveExtractor()
+        test_date = '08/09/2024'
+        test_amount = '666.0'
+        test_description = 'Description'
+        test_data = [
+            test_date,
+            test_description,
+            '',
+            test_amount,
+            '',
+            ''
+        ]
+
+        transaction = extractor.extract(test_data)
+        expected_amount = '-666.0'
+
+        assert transaction.date == test_date
+        assert transaction.amount == expected_amount
+        assert transaction.description == test_description
+
+    def test_extraction_method_correctly_converts_negative_amount(self):
+        extractor = SchemaFiveExtractor()
+        test_date = '08/09/2024'
+        test_amount = '-666.0'
+        test_description = 'Description'
+        test_data = [
+            test_date,
+            test_description,
+            '',
+            test_amount,
+            '',
+            ''
+        ]
+
+        transaction = extractor.extract(test_data)
+
+        expected_amount = '666.0'
+        assert transaction.amount == expected_amount
+
+    def test_extraction_method_correctly_infers_debit_indicator(self):
+        extractor = SchemaFiveExtractor()
+        test_date = '08/09/2024'
+        test_amount = '-666.0'
+        test_description = 'Description'
+        test_data = [
+            test_date,
+            test_description,
+            '',
+            test_amount,
+            '',
+            ''
+        ]
+
+        transaction = extractor.extract(test_data)
+        expected_indicator = 'Debit'
+
+        assert transaction.credit_or_debit == expected_indicator
+
+    def test_extraction_method_correctly_infers_credit_indicator(self):
+        extractor = SchemaFiveExtractor()
+        test_date = '08/09/2024'
+        test_amount = '666.0'
+        test_description = 'Description'
+        test_data = [
+            test_date,
+            test_description,
+            '',
+            test_amount,
+            '',
+            ''
+        ]
+
+        transaction = extractor.extract(test_data)
+        expected_indicator = 'Credit'
+
+        assert transaction.credit_or_debit == expected_indicator
+
+    def test_extraction_method_throws_value_error_if_input_for_schema_one(self):
+        extractor = SchemaFiveExtractor()
+
+        test_date = '08/09/2024'
+        test_amount = '666.0'
+        test_indicator = 'Debit'
+        test_description = 'Description'
+        test_data = [
+            test_date,
+            test_amount,
+            test_indicator,
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            test_description,
+            '',
+            '',
+            ''
+        ]
+
+        with pytest.raises(ValueError):
+            extractor.extract(test_data)
+    
+    def test_extraction_method_throws_value_error_if_input_for_schema_two(self):
+        extractor = SchemaFiveExtractor()
+
+        test_date = '08/09/2024'
+        test_amount = '666.0'
+        test_indicator = 'Debit'
+        test_description = 'Description'
+        test_data = [
+            '',
+            test_date,
+            test_amount,
+            test_indicator,
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            test_description,
+            '',
+            ''
+        ]
+
+        with pytest.raises(ValueError):
+            extractor.extract(test_data)
+
+    def test_extraction_method_throws_value_error_if_input_for_schema_three(self):
+        extractor = SchemaFiveExtractor()
+        test_date = '08/09/2024'
+        test_amount = '666.0'
+        test_description = 'Description'
+        test_data = [
+            test_date,
+            '',
+            test_description,
+            '',
+            '',
+            test_amount,
+            ''
+        ]
+
+        with pytest.raises(ValueError):
+            extractor.extract(test_data)
+
+    def test_extraction_method_throws_value_error_if_input_for_schema_four(self):
+        extractor = SchemaFiveExtractor()
+
+        test_date = '08/09/2024'
+        test_amount = '666.0'
+        test_description = 'Description'
+        test_data = [
+            test_date,
+            test_description,
+            test_amount
         ]
 
         with pytest.raises(ValueError):

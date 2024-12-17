@@ -95,6 +95,18 @@ class SchemaFourExtractor(TransactionExtractorTemplate):
         )
         return date, amount, credit_or_debit, description
 
+class SchemaFiveExtractor(TransactionExtractorTemplate):
+    @classmethod
+    def _extraction_method(cls, transaction: List[str]) -> ExtractedTransaction:
+        date, description, _, amount, _, _ = transaction
+        credit_or_debit = (
+            TransactionExtractorTemplate.debit_indicator_string
+            if float(amount) < 0 else
+            TransactionExtractorTemplate.credit_indicator_string
+        )
+
+        return date, amount, credit_or_debit, description
+
    
 class TransactionExtractorPipeline(ChainOfResponsibilityTransactionExtractor):
     def __init__(self):
@@ -103,6 +115,7 @@ class TransactionExtractorPipeline(ChainOfResponsibilityTransactionExtractor):
         self.extractors.append(SchemaTwoExtractor.extract)
         self.extractors.append(SchemaThreeExtractor.extract)
         self.extractors.append(SchemaFourExtractor.extract)
+        self.extractors.append(SchemaFiveExtractor.extract)
 
     def extract_transactions(self, transactions: List[List[str]]) -> List[ExtractedTransaction]:
         extracted_transactions = list()
