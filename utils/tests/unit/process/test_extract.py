@@ -18,6 +18,9 @@ class MockTransactionExtractorTemplate(TransactionExtractorTemplate):
     def _extraction_method(self, _: List[str]):
         pass
 
+    def get_extractor_id(self):
+        return -1
+
 
 class TestChainOfResponsibilityTransactionExtractor:
     def test_unable_to_instantiate(self):
@@ -83,12 +86,39 @@ class TestTransactionExtractorPipeline:
             ''
         ]
 
-        transaction = pipeline.extract_transactions([test_data])[0]
+        transaction = pipeline.extract_transactions([test_data])[0][0]
 
         assert transaction.date == test_date
         assert transaction.amount == test_amount
         assert transaction.credit_or_debit == test_indicator
         assert transaction.description == test_description
+
+    def test_schema_one_data_uses_schema_one_extractor(self):
+        pipeline = TransactionExtractorPipeline()
+        test_date = '08/09/2024'
+        test_amount = '666.0'
+        test_indicator = 'Debit'
+        test_description = 'Description'
+        test_data = [
+            test_date,
+            test_amount,
+            test_indicator,
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            test_description,
+            '',
+            '',
+            ''
+        ]
+
+        extractor_id = pipeline.extract_transactions([test_data])[0][1]
+        expected_id = 1
+
+        assert extractor_id == expected_id
     
     def test_correctly_extracts_schema_two_data(self):
         pipeline = TransactionExtractorPipeline()
@@ -113,12 +143,39 @@ class TestTransactionExtractorPipeline:
             ''
         ]
 
-        transaction = pipeline.extract_transactions([test_data])[0]
+        transaction = pipeline.extract_transactions([test_data])[0][0]
 
         assert transaction.date == test_date
         assert transaction.amount == test_amount
         assert transaction.credit_or_debit == test_indicator
         assert transaction.description == test_description
+
+    def test_schema_two_data_uses_schema_two_extractor(self):
+        pipeline = TransactionExtractorPipeline()
+        test_date = '08/09/2024'
+        test_amount = '666.0'
+        test_indicator = 'Debit'
+        test_description = 'Description'
+        test_data = [
+            '',
+            test_date,
+            test_amount,
+            test_indicator,
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            test_description,
+            '',
+            ''
+        ]
+
+        extractor_id = pipeline.extract_transactions([test_data])[0][1]
+        expected_id = 2
+
+        assert extractor_id == expected_id
 
     def test_does_not_throw_invalid_schema_error_for_schema_two_data(self):
         pipeline = TransactionExtractorPipeline()
@@ -144,7 +201,7 @@ class TestTransactionExtractorPipeline:
         ]
 
         try:
-            pipeline.extract_transactions([test_data])[0]
+            pipeline.extract_transactions([test_data])[0][0]
         except InvalidSchemaError:
             assert False
     
@@ -164,7 +221,7 @@ class TestTransactionExtractorPipeline:
             ''
         ]
 
-        transaction = pipeline.extract_transactions([test_data])[0]
+        transaction = pipeline.extract_transactions([test_data])[0][0]
         expected_amount = '666.0'
 
         assert transaction.date == test_date
@@ -190,6 +247,26 @@ class TestTransactionExtractorPipeline:
             pipeline.extract_transactions([test_data])[0]
         except InvalidSchemaError:
             assert False
+
+    def test_schema_three_data_uses_schema_three_extractor(self):
+        pipeline = TransactionExtractorPipeline()
+        test_date = '08/09/2024'
+        test_amount = '666.0'
+        test_description = 'Description'
+        test_data = [
+            test_date,
+            '',
+            test_description,
+            '',
+            '',
+            test_amount,
+            ''
+        ]
+
+        extractor_id = pipeline.extract_transactions([test_data])[0][1]
+        expected_id = 3
+
+        assert extractor_id == expected_id
     
     def test_correctly_extracts_schema_four_data(self):
         pipeline = TransactionExtractorPipeline()
@@ -203,7 +280,7 @@ class TestTransactionExtractorPipeline:
             test_amount
         ]
 
-        transaction = pipeline.extract_transactions([test_data])[0]
+        transaction = pipeline.extract_transactions([test_data])[0][0]
 
         assert transaction.date == test_date
         assert transaction.amount == test_amount
@@ -225,6 +302,44 @@ class TestTransactionExtractorPipeline:
         except InvalidSchemaError:
             assert False
 
+    def test_schema_four_data_uses_schema_four_extractor(self):
+        pipeline = TransactionExtractorPipeline()
+        test_date = '08/09/2024'
+        test_amount = '666.0'
+        test_description = 'Description'
+        test_data = [
+            test_date,
+            test_description,
+            test_amount
+        ]
+
+        extractor_id = pipeline.extract_transactions([test_data])[0][1]
+        expected_id = 4
+
+        assert extractor_id == expected_id
+
+    def test_correctly_extracts_schema_five_data(self):
+        pipeline = TransactionExtractorPipeline()
+
+        test_date = '08/09/2024'
+        test_amount = '666.0'
+        test_description = 'Description'
+        test_data = [
+            test_date,
+            test_description,
+            '',
+            test_amount,
+            '',
+            ''
+        ]
+
+        transaction = pipeline.extract_transactions([test_data])[0][0]
+        expected_amount = '-666.0'
+
+        assert transaction.date == test_date
+        assert transaction.amount == expected_amount
+        assert transaction.description == test_description
+
     def test_does_not_throw_invalid_schema_error_for_schema_five_data(self):
         pipeline = TransactionExtractorPipeline()
         test_date = '08/09/2024'
@@ -243,6 +358,25 @@ class TestTransactionExtractorPipeline:
             pipeline.extract_transactions([test_data])[0]
         except InvalidSchemaError:
             assert False
+
+    def test_schema_five_data_uses_schema_five_extractor(self):
+        pipeline = TransactionExtractorPipeline()
+        test_date = '08/09/2024'
+        test_amount = '666.0'
+        test_description = 'Description'
+        test_data = [
+            test_date,
+            test_description,
+            '',
+            test_amount,
+            '',
+            ''
+        ]
+
+        extractor_id = pipeline.extract_transactions([test_data])[0][1]
+        expected_id = 5
+
+        assert extractor_id == expected_id
 
 
 class TestTransactionExtractorTemplate:

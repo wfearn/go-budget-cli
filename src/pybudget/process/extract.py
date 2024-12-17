@@ -36,6 +36,10 @@ class TransactionExtractorTemplate(ABC):
     def _extraction_method(self, transaction: List[str]) -> ExtractedTransaction:
         raise NotImplementedError
 
+    @abstractmethod
+    def get_extractor_id(self):
+        raise NotImplementedError
+
     @classmethod
     def normalize_date(self, date_string: str) -> str:
         return date_string
@@ -64,12 +68,20 @@ class SchemaOneExtractor(TransactionExtractorTemplate):
         date, amount, credit_or_debit, _, _, _, _, _, _, description, _, _, _ = transaction
         return date, amount, credit_or_debit, description
 
+    @classmethod
+    def get_extractor_id(cls):
+        return 1
+
     
 class SchemaTwoExtractor(TransactionExtractorTemplate):
     @classmethod
     def _extraction_method(cls, transaction: List[str]) -> ExtractedTransaction:
         _, date, amount, credit_or_debit, _, _, _, _, _, _, description, _, _ = transaction
         return date, amount, credit_or_debit, description
+
+    @classmethod
+    def get_extractor_id(cls):
+        return 2
 
 
 class SchemaThreeExtractor(TransactionExtractorTemplate):
@@ -83,6 +95,10 @@ class SchemaThreeExtractor(TransactionExtractorTemplate):
         )
         return date, amount, credit_or_debit, description
 
+    @classmethod
+    def get_extractor_id(cls):
+        return 3
+
 
 class SchemaFourExtractor(TransactionExtractorTemplate):
     @classmethod
@@ -94,6 +110,11 @@ class SchemaFourExtractor(TransactionExtractorTemplate):
             TransactionExtractorTemplate.debit_indicator_string
         )
         return date, amount, credit_or_debit, description
+
+    @classmethod
+    def get_extractor_id(cls):
+        return 4
+
 
 class SchemaFiveExtractor(TransactionExtractorTemplate):
     @classmethod
@@ -107,29 +128,33 @@ class SchemaFiveExtractor(TransactionExtractorTemplate):
 
         return date, amount, credit_or_debit, description
 
+    @classmethod
+    def get_extractor_id(cls):
+        return 5
+
    
 class TransactionExtractorPipeline(ChainOfResponsibilityTransactionExtractor):
     def __init__(self):
         self.extractors = list()
-        self.extractors.append(SchemaOneExtractor.extract)
-        self.extractors.append(SchemaTwoExtractor.extract)
-        self.extractors.append(SchemaThreeExtractor.extract)
-        self.extractors.append(SchemaFourExtractor.extract)
-        self.extractors.append(SchemaFiveExtractor.extract)
+        self.extractors.append(SchemaOneExtractor)
+        self.extractors.append(SchemaTwoExtractor)
+        self.extractors.append(SchemaThreeExtractor)
+        self.extractors.append(SchemaFourExtractor)
+        self.extractors.append(SchemaFiveExtractor)
 
     def extract_transactions(self, transactions: List[List[str]]) -> List[ExtractedTransaction]:
         extracted_transactions = list()
 
         for transaction in transactions:
             extraction_successful = False
-            for extraction_method in self.extractors:
+            for extractor in self.extractors:
                 try:
-                    extracted_transaction = extraction_method(transaction)
+                    extracted_transaction = extractor.extract(transaction)
                 except (InvalidTransactionIndicatorError, ValueError):
                     continue
 
                 extraction_successful = True
-                extracted_transactions.append(extracted_transaction)
+                extracted_transactions.append((extracted_transaction, extractor.get_extractor_id()))
                 
 
             if not extraction_successful:
