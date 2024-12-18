@@ -1,17 +1,17 @@
-from collections import defaultdict
 import csv
 from datetime import datetime
 import glob
 import io
 import os
+from pathlib import Path
 from typing import Dict, List
 
 import pandas as pd
 import yaml
 
-from .manager import StorageManager
+from pybudget.process import convert_transactions_to_usable_data
 
-from ..process import convert_transactions_to_usable_data
+from .manager import StorageManager
 
 
 class FileManager(StorageManager):
@@ -45,19 +45,19 @@ class FileManager(StorageManager):
     # default dates can be any window that we won't need transactions outside of
     def get_transactions(self, start_date: str = '01/01/0001', end_date: str = '01/01/2100') -> pd.DataFrame:
         if self.transactions is None:
-            self.transactions = pd.read_csv(
-                FileManager.master_filename,
-                names=FileManager.master_columns
-            )
-            self.transactions['date'] = pd.to_datetime(self.transactions['date'])
+            self.transactions = self.read(CSVFileManager.master_filename)
 
         start = datetime.strptime(start_date, '%m/%d/%Y')
         end = datetime.strptime(end_date, '%m/%d/%Y')
 
-        dated_transactions = self.transactions.loc[
-            (self.transactions['date'] >= start) &
-            (self.transactions['date'] <= end)
-        ]
+        dated_transactions = {}
+        for i, transaction in enumerate(self.transactions):
+            if i == 0: continue
+            transaction_date = datetime.strptime(transaction[0], '%Y/%m/%d')
+            if transaction_date > end or transaction_date < start: continue
+            transaction_hash = transaction[-2]
+            if transaction_hash in dated_transactions: continue
+            dated_transactions[transaction_hash] = transaction
 
         return dated_transactions
 
@@ -83,68 +83,55 @@ class FileManager(StorageManager):
             self.budget_updated = False
 
         if self.transactions_updated:
-            self.transactions.to_csv(FileManager.master_filename, header=False, index=False)
+            self.write(self.transactions, CSVFileManager.master_filename)
             self.transactions_updated = False
 
     def load_new_transactions(self) -> None:
-        filetype_to_transactions = defaultdict(list)
-        for filetype_regex in FileManager.filetype_regexes:
-            for filename in glob.glob(filetype_regex):
-                filetype = FileManager._convert_filename_to_filetype(filename)
-                with open(filename, 'r') as csvfile:
-                    reader = csv.reader(csvfile)
-                    for i, row in enumerate(reader):
-                        # these files have a header by default
-                        if not i: continue
-                        filetype_to_transactions[filetype].append(row)
+        new_transaction_pattern = os.path.join(
+            self.data_directory,
+            'new_transactions',
+            '*.csv'
+        )
 
-                os.remove(filename)
+        new_transactions = []
+        for filename in glob.glob(new_transaction_pattern):
+            with open(filename, 'r') as csvfile:
+                reader = csv.reader(csvfile)
+                for i, row in enumerate(reader):
+                    # these files have a header by default
+                    if not i: continue
+                    new_transactions.append(row)
+
+                # os.remove(filename)
 
 
-        processed_transactions = convert_transactions_to_usable_data(filetype_to_transactions)
-        transactions = self.get_transactions()
-        all_hashes = set(transactions['hash'])
+        processed_transactions = convert_transactions_to_usable_data(new_transactions)
+        previous_transactions = self.get_transactions()
 
-        new_transactions_to_add = list()
+        new_transactions_to_add = []
 
         for transaction in processed_transactions:
-            if transaction.hash in all_hashes: continue
-            new_transactions_to_add.append(list())
+            if transaction.hash in previous_transactions: continue
+            new_transactions_to_add.append([])
 
             new_transactions_to_add[-1].append(transaction.date)
             new_transactions_to_add[-1].append(transaction.description)
             new_transactions_to_add[-1].append(float(transaction.amount))
-            new_transactions_to_add[-1].append(transaction.institution)
+            new_transactions_to_add[-1].append(transaction.extractor_id)
             new_transactions_to_add[-1].append(transaction.category)
+            new_transactions_to_add[-1].append(transaction.transaction_indicator)
             new_transactions_to_add[-1].append(transaction.guid)
             new_transactions_to_add[-1].append(transaction.hash)
             new_transactions_to_add[-1].append(int(transaction.human_confirmed))
-
-        self.transactions = pd.concat((
-            pd.DataFrame(new_transactions_to_add, columns=FileManager.master_columns),
-            transactions
-        ))
+        
+        self.transactions.extend(new_transactions_to_add)
 
         self.transactions_updated = True
 
 
-    def _convert_filename_to_filetype(filename: str) -> str:
-        if 'amex' in filename:
-            return 'amex'
-        elif 'chase' in filename:
-            return 'chase'
-        elif 'navyfed' in filename:
-            return 'navyfed'
-        elif 'becu' in filename:
-            return 'becu'
-        elif 'sofi' in filename:
-            return 'sofi'
-        else:
-            raise NotImplementedError(f'{filename} not implemented')
-
 class CSVFileManager(FileManager):
-    budget_directory = f'{os.getenv("SYSTEMDRIVE")}/.pybudget/budget'
-    data_directory = f'{os.getenv("SYSTEMDRIVE")}/.pybudget/data'
+    budget_directory = os.path.join(f'{Path.home()}', '.pybudget', 'budget')
+    data_directory = os.path.join(f'{Path.home()}', '.pybudget', 'data')
     master_filename = 'all_transactions.csv'
     master_columns = [
         'date',
@@ -176,12 +163,31 @@ class CSVFileManager(FileManager):
         return data
 
     def write(self, data: List[List[str]], filename: str) -> None:
-        filename = f'{self.data_directory}/{filename}' if self._save_in_default_dir(
+        print('Filename:', filename)
+        filename = os.path.join(f'{self.data_directory}', f'{filename}') if self._save_in_default_dir(
             filename
         ) else filename
 
         with open(filename, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            writer.writerow(self.master_columns)
             for row in data:
                 writer.writerow(row)
 
+    def append(self, data: List[List[str]], filename: str) -> None:
+        filename = f'{self.data_directory}/{filename}' if self._save_in_default_dir(
+            filename
+        ) else filename
+
+        if not os.path.exists(filename):
+            raise ValueError(f'{filename} must exist to append to it')
+        
+        with open(filename, 'a', newline='') as csvfile:
+            writer = csv.writer(
+                csvfile,
+                delimiter=',',
+                quotechar='"',
+                quoting=csv.QUOTE_MINIMAL
+            )
+            for row in data:
+                writer.writerow(row)
